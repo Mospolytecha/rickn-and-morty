@@ -1,8 +1,9 @@
-import { Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import React from 'react';
+import { Button, Table } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import React, { useEffect, useState } from "react";
+import { CharactersService } from "../../services/characters.service";
 
-interface DataType {
+export interface DataType {
   key: string;
   name: string;
   status: string;
@@ -11,53 +12,38 @@ interface DataType {
 }
 
 const TestTable: React.FC = () => {
-  const tableData: DataType[] = [
-    {
-      key: "1",
-      name: "Morty Smith",
-      status: 'Alive',
-      species: "Human",
-      gender: "Male",
-    },
-    {
-      key: "2",
-      name: "Summer Smith",
-      status: 'Alive',
-      species: "Human",
-      gender: "Female",
-    },
-    
-    {
-      key: "3",
-      name: "Morty Smith",
-      status: 'Alive',
-      species: "Human",
-      gender: "Male",
-    },
-    {
-      key: "4",
-      name: "Summer Smith",
-      status: 'Alive',
-      species: "Human",
-      gender: "Female",
-    },
-    
-    {
-      key: "5",
-      name: "Morty Smith",
-      status: 'Alive',
-      species: "Human",
-      gender: "Male",
-    },
-    {
-      key: "6",
-      name: "Summer Smith",
-      status: 'Alive',
-      species: "Human",
-      gender: "Female",
-    },
-    
-  ];
+  const [totalPages, setTotalPages] = useState<number | undefined>(undefined);
+  const [curPage, setCurPage] = useState<number>(1);
+  const [tableData, setTableData] = useState<object | undefined>(undefined);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await CharactersService.getCharactees(curPage);
+        if (response.data.info.next === null) {
+          setCurPage(response.data.info.pages);
+        } else {
+          setTableData(response.data.results);
+          setTotalPages(response.data.info.pages);
+        }
+      } catch (error) {
+        console.error("Ошибка в получении данных", error);
+      }
+    };
+    fetchData();
+  }, [curPage]);
+  const handleChangePage = (page: number) => {
+    setCurPage(page);
+  };
+  const handlePreviousPage = () => {
+    if (curPage > 1) {
+      handleChangePage(curPage - 1);
+    }
+  };
+  const handleNextPage = () => {
+    if (curPage < totalPages) {
+      handleChangePage(curPage + 1);
+    }
+  };
 
   const columns: ColumnsType<DataType> = [
     {
@@ -82,14 +68,20 @@ const TestTable: React.FC = () => {
     },
   ];
 
-  const paginationConfig = {
-    pageSize: 3,
-    total: tableData.length,
-  };
-
   return (
-    <Table columns={columns} dataSource={tableData} pagination={paginationConfig} />
-  );
+    <>
+      <Table columns={columns} dataSource={tableData} pagination={false} />
+      <Button onClick={handlePreviousPage} disabled={curPage === 1}>
+        &lt;
+      </Button>
+      <span>
+        {curPage} стр. из {totalPages}
+      </span>
+      <Button onClick={handleNextPage} disabled={curPage === totalPages}>
+        &gt;
+      </Button>
+    </>
+  )
 };
 
 export default TestTable;
